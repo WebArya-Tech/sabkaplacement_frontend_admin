@@ -17,5 +17,3 @@ build
 coverage
 .nyc_output
 README.md
-.eslintrc.cjs
-vite.config.js

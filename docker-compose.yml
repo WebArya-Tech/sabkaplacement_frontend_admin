@@ -1,9 +1,4 @@
-# ─────────────────────────────────────────────────────────
-#  docker-compose.yml — Admin Panel Frontend (panel4)
-#  Development environment with hot reload
-# ─────────────────────────────────────────────────────────
-
-version: '3.9'
+version: "3.9"
 
 services:
   admin-panel:
@@ -11,25 +6,18 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: jobportal-admin-panel
-    restart: unless-stopped
     ports:
-      - "${ADMIN_PORT:-3001}:5173"
-    volumes:
-      - .:/app
-      - /app/node_modules
+      - "9022:9022"
+    env_file:
+      - .env
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
-      NODE_ENV: development
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5173/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    stdin_open: true
-    tty: true
+      - NODE_ENV=${NODE_ENV}
+      - VITE_API_URL=${VITE_API_URL}
+      - VITE_APP_NAME=${VITE_APP_NAME}
+    restart: unless-stopped
+    networks:
+      - jobportal-network
 
 networks:
-  default:
-    name: jobportal-network
+  jobportal-network:
     driver: bridge
