@@ -1,32 +1,33 @@
-# ─────────────────────────────────────────────────────────
-#  Admin Panel Frontend — Dockerfile (panel4)
-#  Development and Production build
-# ─────────────────────────────────────────────────────────
+# Build stage 
+FROM node:18-alpine AS builder 
 
-FROM node:20-alpine
+WORKDIR /app 
 
-# Set metadata labels
-LABEL maintainer="Job Portal Team"
-LABEL description="Admin Panel Frontend"
-LABEL version="1.0.0"
+# Copy package files 
+COPY package.json package-lock.json ./ 
 
-WORKDIR /app
+# Install dependencies 
+RUN npm install 
 
-# Copy package files
-COPY package.json package-lock.json ./
+# Copy source code 
+COPY . . 
 
-# Install dependencies
-RUN npm ci
+# Build the application 
+RUN npm run build 
 
-# Copy source code
-COPY . .
+# Production stage 
+FROM node:18-alpine 
 
-# Expose port
-EXPOSE 5173
+WORKDIR /app 
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost:5173/ || exit 1
+# Install serve package to run the frontend 
+RUN npm install -g serve 
 
-# Start development server
-CMD ["npm", "run", "dev", "--", "--host"]
+# Copy built application from builder stage 
+COPY --from=builder /app/dist ./dist 
+
+# Expose port 9022 
+EXPOSE 9022 
+
+# Start serving the application on port 9022
+CMD ["serve", "-s", "dist", "-l", "9022"]
