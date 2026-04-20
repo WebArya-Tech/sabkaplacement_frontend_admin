@@ -6,7 +6,7 @@ const API = axios.create({
 
 // Attach token to requests if available
 API.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -20,6 +20,8 @@ API.interceptors.response.use(
     if (error.response?.status === 401 || error.response?.status === 403) {
       localStorage.removeItem('token')
       localStorage.removeItem('adminData')
+      sessionStorage.removeItem('token')
+      sessionStorage.removeItem('adminData')
       window.location.href = '/login'
     }
     return Promise.reject(error)
