@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Bell, Search, Menu, Settings, X, CheckCircle, Briefcase, Users, BookOpen, Monitor, Moon, Globe, Shield, Info } from 'lucide-react'
+import { Bell, Search, Menu, X, CheckCircle, Briefcase, Users, BookOpen, Monitor } from 'lucide-react'
 import Profile from './Profile'
 
 const pageTitles = {
@@ -36,18 +36,11 @@ export default function Header({ onMenuToggle, currentPath, onLogout }) {
   const title = pageTitles[currentPath] || 'Admin Panel'
   const [profileOpen, setProfileOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [notifications, setNotifications] = useState(NOTIFICATIONS)
-  const [darkMode, setDarkMode] = useState(false)
-  const [language, setLanguage] = useState('English')
-  const [privacyOpen, setPrivacyOpen] = useState(false)
-  const [aboutOpen, setAboutOpen] = useState(false)
 
   const notifRef = useRef(null)
-  const settingsRef = useRef(null)
 
   useClickOutside(notifRef, () => setNotifOpen(false))
-  useClickOutside(settingsRef, () => setSettingsOpen(false))
 
   const unreadCount = notifications.filter(n => n.unread).length
 
@@ -57,87 +50,6 @@ export default function Header({ onMenuToggle, currentPath, onLogout }) {
   return (
     <>
       {profileOpen && <Profile onClose={() => setProfileOpen(false)} onLogout={onLogout} />}
-
-      {/* Privacy & Security Modal */}
-      {privacyOpen && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center backdrop-blur-sm" onClick={() => setPrivacyOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <Shield size={18} style={{ color: '#3385AA' }} />
-                <h3 className="text-base font-bold text-gray-800">Privacy &amp; Security</h3>
-              </div>
-              <button onClick={() => setPrivacyOpen(false)} className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors">
-                <X size={16} className="text-gray-500" />
-              </button>
-            </div>
-            <div className="px-6 py-5 space-y-4">
-              {[
-                { label: 'Two-Factor Authentication', desc: 'Add an extra layer of security to your account', enabled: true },
-                { label: 'Login Activity Alerts', desc: 'Get notified on new device logins', enabled: true },
-                { label: 'Session Timeout', desc: 'Auto logout after 30 minutes of inactivity', enabled: false },
-                { label: 'Data Export', desc: 'Allow exporting your admin data', enabled: false },
-              ].map(({ label, desc, enabled }) => (
-                <div key={label} className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-700">{label}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
-                  </div>
-                  <div className="relative w-10 h-5 rounded-full shrink-0" style={{ background: enabled ? '#3385AA' : '#d1d5db' }}>
-                    <span className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow" style={{ left: enabled ? '22px' : '2px' }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="px-6 pb-5">
-              <button onClick={() => setPrivacyOpen(false)} className="w-full py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity" style={{ background: 'linear-gradient(135deg, #3385AA, #1a6b8a)' }}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* About Modal */}
-      {aboutOpen && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center backdrop-blur-sm" onClick={() => setAboutOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <Info size={18} style={{ color: '#3385AA' }} />
-                <h3 className="text-base font-bold text-gray-800">About</h3>
-              </div>
-              <button onClick={() => setAboutOpen(false)} className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors">
-                <X size={16} className="text-gray-500" />
-              </button>
-            </div>
-            <div className="px-6 py-6 text-center">
-              <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-white font-bold text-2xl shadow-lg" style={{ background: 'linear-gradient(135deg, #1a2e3b, #3385AA)' }}>A</div>
-              <h4 className="text-lg font-bold text-gray-800">Admin Panel</h4>
-              <p className="text-xs text-gray-400 mt-1">Sabka Placement Management System</p>
-              <div className="mt-5 space-y-2 text-left">
-                {[
-                  ['Version', '1.0.0'],
-                  ['Build', 'April 2026'],
-                  ['Framework', 'React + Vite'],
-                  ['License', 'Private'],
-                  ['Support', 'admin@sabkaplacement.com'],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex justify-between px-4 py-2 bg-gray-50 rounded-xl">
-                    <span className="text-xs text-gray-500 font-medium">{k}</span>
-                    <span className="text-xs text-gray-700 font-semibold">{v}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="px-6 pb-5">
-              <button onClick={() => setAboutOpen(false)} className="w-full py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity" style={{ background: 'linear-gradient(135deg, #3385AA, #1a6b8a)' }}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <header className="sticky top-0 z-10 shadow-md" style={{ background: '#3385AA' }}>
         <div className="flex items-center justify-between px-3 md:px-6 py-4 h-[72px]">
@@ -163,7 +75,7 @@ export default function Header({ onMenuToggle, currentPath, onLogout }) {
             {/* Notifications */}
             <div className="relative" ref={notifRef}>
               <button
-                onClick={() => { setNotifOpen(v => !v); setSettingsOpen(false) }}
+                onClick={() => setNotifOpen(v => !v)}
                 className="relative p-2 md:p-2.5 rounded-xl transition-colors"
                 style={{ color: '#fff' }}
                 onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.15)'}
@@ -205,80 +117,6 @@ export default function Header({ onMenuToggle, currentPath, onLogout }) {
                         </button>
                       </div>
                     ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Settings */}
-            <div className="relative hidden sm:block" ref={settingsRef}>
-              <button
-                onClick={() => { setSettingsOpen(v => !v); setNotifOpen(false) }}
-                className="p-2.5 rounded-xl transition-colors"
-                style={{ color: '#fff' }}
-                onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.15)'}
-                onMouseLeave={e => e.currentTarget.style.background='transparent'}
-              >
-                <Settings size={18} />
-              </button>
-
-              {settingsOpen && (
-                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <h3 className="text-sm font-bold text-gray-800">Settings</h3>
-                  </div>
-                  <div className="p-2 space-y-1">
-                    {/* Dark Mode toggle */}
-                    <div className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center gap-2.5">
-                        <Moon size={15} className="text-gray-500" />
-                        <span className="text-sm text-gray-700">Dark Mode</span>
-                      </div>
-                      <button
-                        onClick={() => setDarkMode(v => !v)}
-                        className="relative w-9 h-5 rounded-full transition-colors"
-                        style={{ background: darkMode ? '#3385AA' : '#d1d5db' }}
-                      >
-                        <span
-                          className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all"
-                          style={{ left: darkMode ? '17px' : '2px' }}
-                        />
-                      </button>
-                    </div>
-
-                    {/* Language */}
-                    <div className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center gap-2.5">
-                        <Globe size={15} className="text-gray-500" />
-                        <span className="text-sm text-gray-700">Language</span>
-                      </div>
-                      <select
-                        value={language}
-                        onChange={e => setLanguage(e.target.value)}
-                        className="text-xs text-gray-600 border border-gray-200 rounded-lg px-2 py-1 outline-none"
-                        style={{ accentColor: '#3385AA' }}
-                      >
-                        <option>English</option>
-                        <option>Hindi</option>
-                        <option>Gujarati</option>
-                      </select>
-                    </div>
-
-                    {/* Privacy */}
-                    <button onClick={() => { setPrivacyOpen(true); setSettingsOpen(false) }} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-left">
-                      <Shield size={15} className="text-gray-500" />
-                      <span className="text-sm text-gray-700">Privacy &amp; Security</span>
-                    </button>
-
-                    {/* About */}
-                    <button onClick={() => { setAboutOpen(true); setSettingsOpen(false) }} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-left">
-                      <Info size={15} className="text-gray-500" />
-                      <span className="text-sm text-gray-700">About</span>
-                    </button>
-
-                    <div className="pt-1 border-t border-gray-100 px-3 py-2">
-                      <p className="text-[10px] text-gray-300">Admin Panel v1.0.0</p>
-                    </div>
                   </div>
                 </div>
               )}
