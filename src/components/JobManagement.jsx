@@ -40,7 +40,7 @@ function JobDetailModal({ job, onClose }) {
               </div>
               <div>
                 <h3 className="text-base md:text-lg font-bold text-gray-800">{job.title}</h3>
-                <p className="text-xs md:text-sm text-gray-500">{job.company}</p>
+                <p className="text-xs md:text-sm text-gray-500">{job.companyId?.companyName || 'N/A'}</p>
               </div>
             </div>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl font-bold">×</button>
@@ -48,13 +48,13 @@ function JobDetailModal({ job, onClose }) {
         </div>
         <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div><p className="text-gray-400">Location</p><p className="font-medium text-gray-700 flex items-center gap-1"><MapPin size={13} />{job.location}</p></div>
-          <div><p className="text-gray-400">Job Type</p><p className="font-medium text-gray-700">{job.type}</p></div>
-          <div><p className="text-gray-400">Salary</p><p className="font-medium text-gray-700">{job.salary}</p></div>
-          <div><p className="text-gray-400">Posted Date</p><p className="font-medium text-gray-700">{job.date}</p></div>
-          <div><p className="text-gray-400">Applications</p><p className="font-medium text-gray-700">{job.apps}</p></div>
+          <div><p className="text-gray-400">Job Type</p><p className="font-medium text-gray-700">{job.jobType}</p></div>
+          <div><p className="text-gray-400">Salary</p><p className="font-medium text-gray-700">{job.salaryMin ? `${job.salaryMin} - ${job.salaryMax}` : 'Not Disclosed'}</p></div>
+          <div><p className="text-gray-400">Posted Date</p><p className="font-medium text-gray-700">{new Date(job.createdAt).toLocaleDateString()}</p></div>
+          <div><p className="text-gray-400">Applications</p><p className="font-medium text-gray-700">{job.applications?.length || 0}</p></div>
           <div><p className="text-gray-400">Status</p>
-            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusConfig[job.status]?.class}`}>
-              {statusConfig[job.status]?.label}
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusConfig[job.status]?.class || 'bg-gray-100 text-gray-600'}`}>
+              {statusConfig[job.status]?.label || job.status}
             </span>
           </div>
         </div>
@@ -91,8 +91,8 @@ export default function JobManagement() {
       // If we are on a specific filter page
       let params = {}
       if (path === '/jobs/approve') params.status = 'Pending'
+      else if (path === '/jobs/approved') params.status = 'Active'
       else if (path === '/jobs/rejected') params.status = 'Rejected'
-      else if (path === '/jobs/spam') params.status = 'Rejected' // Assuming spam is a type of rejection or handled similarly
       
       // Override with manual filters if set
       if (filterStatus !== 'all') params.status = filterStatus
@@ -162,9 +162,10 @@ export default function JobManagement() {
   }, [])
 
   const filterByPath = (j) => {
-    if (path === '/jobs/approve') return j.status === 'pending'
-    if (path === '/jobs/rejected') return j.status === 'rejected'
-    if (path === '/jobs/spam') return j.status === 'spam'
+    const status = (j.status || '').toLowerCase()
+    if (path === '/jobs/approve') return status === 'pending'
+    if (path === '/jobs/approved') return status === 'active'
+    if (path === '/jobs/rejected') return status === 'rejected'
     return true
   }
 
@@ -172,7 +173,13 @@ export default function JobManagement() {
     if (!filterByPath(j)) return false
     if (filterStatus !== 'all' && j.status !== filterStatus) return false
     if (filterType !== 'all' && j.type !== filterType) return false
-    if (search && !j.title.toLowerCase().includes(search.toLowerCase()) && !j.company.toLowerCase().includes(search.toLowerCase())) return false
+    if (search) {
+      const searchTerm = search.toLowerCase()
+      const titleMatch = j.title?.toLowerCase().includes(searchTerm)
+      const companyName = j.companyId?.companyName || j.company || ''
+      const companyMatch = companyName.toLowerCase().includes(searchTerm)
+      if (!titleMatch && !companyMatch) return false
+    }
     return true
   })
 
@@ -200,8 +207,8 @@ export default function JobManagement() {
 
   const pageTitle = () => {
     if (path === '/jobs/approve') return 'Pending Jobs — Approve / Reject'
+    if (path === '/jobs/approved') return 'Approved Jobs'
     if (path === '/jobs/rejected') return 'Rejected Jobs'
-    if (path === '/jobs/spam') return 'Spam Jobs'
     return 'All Jobs'
   }
 
@@ -241,10 +248,35 @@ export default function JobManagement() {
               {[filterStatus !== 'all', filterType !== 'all'].filter(Boolean).length}
             </span>}
           </button>
-
-
-
-          {/* Export button */}
+          
+          {filterOpen && (
+            <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-20 p-2">
+              <div className="mb-2">
+                <p className="text-xs font-bold text-gray-500 uppercase px-2 mb-1">Status</p>
+                {['all', 'Pending', 'Active', 'Rejected', 'Closed'].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setFilterStatus(s === 'all' ? 'all' : s)}
+                    className={`w-full text-left px-2 py-1.5 text-sm rounded-lg ${filterStatus === (s === 'all' ? 'all' : s) ? 'bg-[#eaf4f9] text-[#3385AA] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    {s === 'all' ? 'All Status' : s}
+                  </button>
+                ))}
+              </div>
+              <div className="border-t border-gray-100 pt-2">
+                <p className="text-xs font-bold text-gray-500 uppercase px-2 mb-1">Job Type</p>
+                {['all', 'Full-time', 'Part-time', 'Contract', 'Internship'].map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setFilterType(t === 'all' ? 'all' : t)}
+                    className={`w-full text-left px-2 py-1.5 text-sm rounded-lg ${filterType === (t === 'all' ? 'all' : t) ? 'bg-[#eaf4f9] text-[#3385AA] font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    {t === 'all' ? 'All Types' : t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}          {/* Export button */}
           <button
             onClick={handleExport}
             className="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-colors"

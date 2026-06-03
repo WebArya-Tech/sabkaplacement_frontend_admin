@@ -12,6 +12,62 @@ const statusBadge = (s) =>
     ? 'bg-green-50 text-green-700 border border-green-200'
     : 'bg-gray-100 text-gray-500 border border-gray-200'
 
+const getDocumentUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http')) {
+    if (url.includes('cloudinary.com') && url.includes('/image/upload/') && url.toLowerCase().endsWith('.pdf')) {
+      return url.replace(/\.pdf$/i, '.jpg');
+    }
+    return url;
+  }
+  return `http://localhost:5000/${url}`;
+};
+
+const handleDownloadDocument = async (e, url, title) => {
+  e.preventDefault();
+  try {
+    const finalUrl = getDocumentUrl(url);
+    if (finalUrl.match(/\.(jpeg|jpg|gif|png)$/i) || finalUrl.includes('/image/upload/')) {
+      window.open(finalUrl, '_blank');
+      return;
+    }
+    
+    // For raw files without extension, fetch as blob and inspect magic bytes
+    const res = await fetch(finalUrl);
+    const blob = await res.blob();
+    
+    let ext = '.pdf'; // Default fallback
+    
+    // Read first 4 bytes to detect file signature
+    const slice = blob.slice(0, 4);
+    const buffer = await slice.arrayBuffer();
+    const view = new Uint8Array(buffer);
+    
+    if (view.length >= 4) {
+      if (view[0] === 0x89 && view[1] === 0x50 && view[2] === 0x4E && view[3] === 0x47) {
+        ext = '.png';
+      } else if (view[0] === 0xFF && view[1] === 0xD8 && view[2] === 0xFF) {
+        ext = '.jpg';
+      } else if (view[0] === 0x25 && view[1] === 0x50 && view[2] === 0x44 && view[3] === 0x46) {
+        ext = '.pdf';
+      }
+    }
+    
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    
+    a.download = `${title.replace(/\s+/g, '_')}${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(blobUrl);
+    document.body.removeChild(a);
+  } catch (err) {
+    console.error('Failed to download document:', err);
+    window.open(getDocumentUrl(url), '_blank');
+  }
+};
+
 const PAGE_SIZE = 5
 
 export default function UserManagement() {
@@ -35,8 +91,47 @@ export default function UserManagement() {
   const [deleteUser, setDeleteUser] = useState(null)
 
   const handleExport = () => {
-    // Simple CSV export logic or just an alert for now to prevent crash
-    alert("Export feature coming soon!")
+    if (filtered.length === 0) {
+      alert("No data to export!");
+      return;
+    }
+    
+    const extraHeader = isEmployers ? 'Website/Jobs' : isTrainers ? 'Expertise' : 'Skills';
+    const headers = ['#', 'Name', 'Email', 'Phone', 'Location', extraHeader, 'Joined', 'Status'];
+    
+    const rows = filtered.map((u, idx) => {
+      const name = isEmployers ? u.companyName : isTrainers ? u.fullName : u.name;
+      const email = isEmployers ? u.userId?.email : u.email;
+      const phone = isEmployers ? u.userId?.phone : isTrainers ? u.phoneNumber : u.phone;
+      
+      let locStr = 'N/A';
+      if ((isEmployers || isCandidates) && u.location) {
+        locStr = typeof u.location === 'object' 
+          ? [u.location.city, u.location.state].filter(Boolean).join(', ')
+          : u.location;
+      }
+      
+      let extra = 'N/A';
+      if (isEmployers) extra = u.website || 'N/A';
+      else if (isTrainers) extra = u.specialization || 'N/A';
+      else if (isCandidates) extra = Array.isArray(u.skills) ? u.skills.join(', ') : (u.skills || 'N/A');
+
+      const isApproved = isCandidates ? true : u.isApproved;
+      const status = isApproved ? 'Active' : 'Pending';
+      const joined = new Date(u.createdAt).toLocaleDateString();
+
+      return [idx + 1, name, email, phone, locStr, extra, joined, status];
+    });
+
+    const csv = [headers, ...rows].map((r) => r.map((v) => `"${String(v || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const typeStr = isEmployers ? 'employers' : isTrainers ? 'trainers' : 'candidates';
+    a.download = `${typeStr}_export_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   const handleDelete = async (id) => {
@@ -112,10 +207,19 @@ export default function UserManagement() {
   }
 
   const filtered = users.filter((u) => {
-    const name = isEmployers ? u.companyName : u.fullName
+    const name = isEmployers ? u.companyName : isTrainers ? u.fullName : u.name
+    const email = isEmployers ? u.userId?.email : u.email
+    
+    // For candidates, status API filtering isn't implemented, so we do it client-side.
+    // Candidates are currently always considered 'active'.
+    if (isCandidates && filterStatus !== 'all') {
+      const candidateStatus = 'active'
+      if (filterStatus !== candidateStatus) return false
+    }
+
     return (
       (name && name.toLowerCase().includes(search.toLowerCase())) ||
-      (u.email && u.email.toLowerCase().includes(search.toLowerCase()))
+      (email && email.toLowerCase().includes(search.toLowerCase()))
     )
   })
 
@@ -195,7 +299,7 @@ export default function UserManagement() {
               </button>
               {filterOpen && (
                 <div className="absolute right-0 top-10 z-20 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden w-40">
-                  {['all', 'active', 'inactive'].map((opt) => (
+                  {['all', 'active', 'pending'].map((opt) => (
                     <button
                       key={opt}
                       onClick={() => { setFilterStatus(opt); setFilterOpen(false) }}
@@ -262,7 +366,7 @@ export default function UserManagement() {
                 // Get "extra" column (Jobs/Skills/Expertise)
                 let extra = 'N/A';
                 if (isEmployers) extra = u.website || 'N/A';
-                else if (isTrainers) extra = u.instituteName || 'N/A';
+                else if (isTrainers) extra = u.specialization || 'N/A';
                 else if (isCandidates) extra = Array.isArray(u.skills) ? u.skills.slice(0, 2).join(', ') + (u.skills.length > 2 ? '...' : '') : 'N/A';
 
                 const isApproved = isCandidates ? true : u.isApproved;
@@ -328,6 +432,7 @@ export default function UserManagement() {
                               gst: isEmployers && u.business?.gstNumber,
                               pan: isEmployers && u.business?.panNumber,
                               cin: isEmployers && u.business?.cinNumber,
+                              documents: isEmployers && u.documents,
                               // Candidate specific
                               skills: isCandidates && (Array.isArray(u.skills) ? u.skills.join(', ') : u.skills),
                               // Trainer specific
@@ -438,6 +543,33 @@ export default function UserManagement() {
                   </div>
                 </div>
               ))}
+              {viewUser.documents && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <FileText size={16} style={{ color }} /> Uploaded Documents
+                  </h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    {viewUser.documents.companyRegistrationCertificate && (
+                      <a href="#" onClick={(e) => handleDownloadDocument(e, viewUser.documents.companyRegistrationCertificate, 'Registration_Certificate')} className="flex items-center justify-between p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <span className="text-sm text-gray-700 font-medium">Registration Certificate</span>
+                        <Download size={14} className="text-gray-400" />
+                      </a>
+                    )}
+                    {viewUser.documents.panCardFile && (
+                      <a href="#" onClick={(e) => handleDownloadDocument(e, viewUser.documents.panCardFile, 'PAN_Card')} className="flex items-center justify-between p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <span className="text-sm text-gray-700 font-medium">PAN Card</span>
+                        <Download size={14} className="text-gray-400" />
+                      </a>
+                    )}
+                    {viewUser.documents.gstCertificate && (
+                      <a href="#" onClick={(e) => handleDownloadDocument(e, viewUser.documents.gstCertificate, 'GST_Certificate')} className="flex items-center justify-between p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <span className="text-sm text-gray-700 font-medium">GST Certificate</span>
+                        <Download size={14} className="text-gray-400" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="px-6 pb-5">
               <button

@@ -291,6 +291,18 @@ export default function CourseManagement() {
     fetchData()
   }, [])
 
+  useEffect(() => {
+    if (path === '/courses/add') {
+      setShowForm(true)
+      setEditCourse(null)
+    } else if (path === '/courses') {
+      setShowForm(false)
+      setAssignModalOpen(false)
+      setEditCourse(null)
+      setAssignCourse(null)
+    }
+  }, [path])
+
   const handleSave = async (form) => {
     setLoading(true)
     try {
