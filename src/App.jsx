@@ -27,8 +27,8 @@ function Layout({ onLogout }) {
             <Route path="/" element={<Dashboard />} />
             <Route path="/jobs" element={<JobManagement />} />
             <Route path="/jobs/approve" element={<JobManagement />} />
+            <Route path="/jobs/approved" element={<JobManagement />} />
             <Route path="/jobs/rejected" element={<JobManagement />} />
-            <Route path="/jobs/spam" element={<JobManagement />} />
             <Route path="/users/employers" element={<UserManagement />} />
             <Route path="/users/candidates" element={<UserManagement />} />
             <Route path="/users/trainers" element={<UserManagement />} />

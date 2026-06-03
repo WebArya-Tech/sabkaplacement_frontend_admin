@@ -29,8 +29,8 @@ const navItems = [
     children: [
       { label: 'View Jobs', path: '/jobs' },
       { label: 'Approve Jobs', path: '/jobs/approve' },
+      { label: 'Approved Jobs', path: '/jobs/approved' },
       { label: 'Rejected Jobs', path: '/jobs/rejected' },
-      { label: 'Spam Jobs', path: '/jobs/spam' },
     ],
   },
   {

@@ -177,7 +177,7 @@ export default function Profile({ onClose, onLogout }) {
               Logout Session
             </button>
             <p className="text-center text-[10px] text-gray-400 mt-4 uppercase tracking-widest font-semibold">
-              Sabka Placement Admin v4.0.1
+              Sabkaplacement Admin v4.0.1
             </p>
           </div>
 
